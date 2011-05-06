@@ -1,5 +1,5 @@
 
-(ns sy-challenge.parsers.fnparse2
+(ns sy-challenge.parsers.fnparse
   "Monadic implementation of the Shunting-yard algorithm"
   (:use clojure.template
         name.choi.joshua.fnparse
@@ -103,7 +103,7 @@
             (:column state)
             (apply str (:remainder state))))))
 
-(defmethod parse :fnparse2
+(defmethod parse :fnparse
   [_ s]
   (rule-match
    <expression>
