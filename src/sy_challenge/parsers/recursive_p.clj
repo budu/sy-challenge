@@ -4,13 +4,51 @@
   https://gist.github.com/953966"
   (:use sy-challenge.core))
 
-(defmacro if-eof [true-f false-f]
-  `(try
-     ~false-f
-     (catch Exception e#
-       (if (= (.getMessage e#) "EOF while reading")
-         ~true-f
-         (throw e#)))))
+;;;; Tokenizer
+
+(defmacro -!>
+  ([x form]
+     `(-> ~x ~form))
+  ([x form & forms]
+     `(let [i# (-!> ~x ~form)]
+        (or i# (-!> ~x ~@forms)))))
+
+(defmacro deftoken [name re & forms]
+  `(defn ~name [s#]
+     (when-let [[m# sp#] (re-find ~(re-pattern
+                                    (str "^(" re ")\\s*")) s#)]
+       [m# (->> sp# ~@forms)])))
+
+(deftoken <lp> #"\(" first)
+
+(deftoken <rp> #"\)" first)
+
+(deftoken <integer> #"\d+" Integer/parseInt)
+
+(deftoken <symbol> #"\w+" symbol)
+
+(deftoken <ops> #"[=+\-*/]" symbol)
+
+(defn tokenize-error [remaining]
+  (throw
+   (Exception.
+    (format "No matching token for '%s'" remaining))))
+
+(defn tokenizer [s]
+  (let [remainder (atom s)]
+    (fn [& options]
+      (if (= :remainder (first options))
+        @remainder
+        (let [[match token] (-!> @remainder
+                                 <lp> <rp> <ops>
+                                 <integer>
+                                 <symbol>)]
+          (swap! remainder #(.substring % (count match)))
+          (if (or (empty? @remainder) match)
+            token
+            (tokenize-error @remainder)))))))
+
+;;;; Parser
 
 (defprotocol parser-p
   (pop-info [this key])
@@ -58,7 +96,7 @@
             (push-info :op-stack token)))))
 
   (parse* [this]
-    (if-eof
+    (if (empty? (tokenizer :remainder))
       (->> (iterate #(shift-op % nil) this)
            (take (inc (count op-stack)))
            last
@@ -66,14 +104,11 @@
            first)
       (parse* (step this)))))
 
-(defn make-parser [tokenizer & [ops]]
-  (Parser. tokenizer '() '() (or ops {'= 1 '+ 2 '* 3})))
+(def *ops* {'= 0 '+ 1 '- 1 '* 2 '/ 2})
 
-(defn tokenizer [s]
-  (let [rdr (java.io.PushbackReader.
-             (java.io.StringReader. s))]
-    #(read rdr)))
+(defn make-parser [tokenizer & [ops]]
+  (Parser. tokenizer '() '() ops))
 
 (defmethod parse :recursive-p
   [_ s]
-  (parse* (make-parser (tokenizer s))))
+  (parse* (make-parser (tokenizer s) *ops*)))
