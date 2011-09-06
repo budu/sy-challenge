@@ -8,10 +8,10 @@
 
 ;;;; State
 
-(defstruct state :remainder :op-stack :out-stack)
+(defstruct state :remainder :op-stack :out-stack :priority)
 
 (defn initial-state [tokens]
-  (struct state tokens '() '()))
+  (struct state tokens '() '() nil))
 
 ;;;; State Helpers
 
