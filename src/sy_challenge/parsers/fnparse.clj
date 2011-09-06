@@ -1,6 +1,7 @@
 
 (ns sy-challenge.parsers.fnparse
-  "Monadic implementation of the Shunting-yard algorithm"
+  "Monadic implementation of the Shunting-yard algorithm. Simple version
+  including only 3 level of left-to-right binary operators"
   (:use clojure.template
         name.choi.joshua.fnparse
         sy-challenge.core))
