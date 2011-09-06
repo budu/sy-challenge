@@ -6,4 +6,7 @@
 ;;   `(binding [*ops* ops]
 ;;      ~@body))
 
-(defmulti parse (fn [p _] p))
+(defmulti parse
+  (fn [p _]
+    (require (->> p name (str "sy-challenge.parsers.") symbol))
+    p))
